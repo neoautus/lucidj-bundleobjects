@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/api/api.iml" filepath="$PROJECT_DIR$/api/api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/extender/extender.iml" filepath="$PROJECT_DIR$/extender/extender.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/lucidj-bundleobjects.iml" filepath="$PROJECT_DIR$/.idea/lucidj-bundleobjects.iml" />
+    </modules>
+  </component>
+</project>

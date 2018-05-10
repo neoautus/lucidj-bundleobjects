@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="OSGi 5.0">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/cache/lib/default/osgi/jar" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$PROJECT_DIR$/cache/lib/default/osgi/jar" recursive="false" />
+  </library>
+</component>
