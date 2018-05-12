@@ -1,0 +1,7 @@
+Bundle-Name: LucidJ BundleObjects Extender
+Bundle-SymbolicName: org.lucidj.bundleobjects.extender
+Bundle-Version: 1.0.0
+Bundle-Vendor: NEOautus Ltd
+Bundle-Activator: org.lucidj.bundleobjects.extender.BundleObjectActivator
+Private-Package: org.lucidj.bundleobjects.extender
+Import-Package: javassist;version="[3,4)",*

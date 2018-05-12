@@ -41,7 +41,7 @@
         <build.module dir="api"
             symbolicName="org.lucidj.api.bundleobjects" version="1.0.0"
             exports="org.lucidj.api.bundleobjects;version=1.0.0"
-            deploy="${deploy.flag}" outfileProperty="api.jar">
+            deploy="${deploy.flag}" outfileProperty="api.jar" ipojo="false">
             <classpath>
                 <path refid="project-libs"/>
             </classpath>
@@ -49,7 +49,7 @@
 
         <build.module dir="extender"
             symbolicName="org.lucidj.bundleobjects.extender" version="1.0.0"
-            deploy="${deploy.flag}">
+            deploy="${deploy.flag}" ipojo="false">
             <classpath>
                 <path refid="project-libs"/>
                 <path refid="extender/libs"/>

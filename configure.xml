@@ -501,13 +501,13 @@
         <element name="classpath" optional="yes"/>
         <sequential>
             <local name="bnd.file"/>
-            <condition property="bnd.file" value="@{module.dir}/bundle.bnd" else="auto">
-                <available file="@{module.dir}/bundle.bnd"/>
+            <condition property="bnd.file" value="@{dir}/bundle.bnd" else="auto">
+                <available file="@{dir}/bundle.bnd"/>
             </condition>
 
             <local name="module.temp.jar"/>
             <build.bundle bnd="${bnd.file}" src="@{dir}/src" exports="@{exports}" version="@{version}"
-                symbolicName="@{symbolicName}" outfileProperty="@{outfileProperty}">
+                symbolicName="@{symbolicName}" outfileProperty="@{outfileProperty}" ipojo="@{ipojo}">
                 <classpaths>
                     <classpath/>
                 </classpaths>
