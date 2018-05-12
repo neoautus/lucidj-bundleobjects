@@ -16,12 +16,10 @@
 
 package org.lucidj.bundleobjects.extender;
 
+import org.lucidj.api.bundleobjects.BundleObjectManager;
+import org.osgi.framework.startlevel.BundleStartLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Observer;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -32,36 +30,31 @@ public class BundleObjectActivator implements BundleActivator
 {
     private final static Logger log = LoggerFactory.getLogger (BundleObjectActivator.class);
 
-    private final List<ServiceRegistration<?>> reg_list = new ArrayList<> ();
-
-    private BundleObjectManager bom;
-    private ServiceRegistration<Observer> sr_bom;
+    private BundleObjectManagerImpl bom;
+    private ServiceRegistration<BundleObjectManager> sr_bom;
+    private ServiceRegistration<WeavingHook> sr_wh;
 
     @Override
     public void start (BundleContext context)
         throws Exception
     {
-        bom = new BundleObjectManager (context);
-        sr_bom = context.registerService (Observer.class, bom, null);
-        addHook (context, bom);
+        BundleStartLevel bsl = context.getBundle ().adapt (BundleStartLevel.class);
+        int bom_startlevel = bsl.getStartLevel();
+
+        bom = new BundleObjectManagerImpl (context, bom_startlevel);
+
+        sr_bom = context.registerService (BundleObjectManager.class, bom, null);
+        sr_wh = context.registerService (WeavingHook.class, bom, null);
+        log.info ("BundleObjects Manager started on level {}", bom_startlevel);
     }
 
     @Override
     public void stop (BundleContext context)
-            throws Exception
+        throws Exception
     {
-        for (ServiceRegistration<?> reg : reg_list)
-        {
-            reg.unregister ();
-        }
-        reg_list.clear ();
+        sr_wh.unregister ();
         sr_bom.unregister ();
-    }
-
-    private void addHook (BundleContext context, WeavingHook hook)
-    {
-        log.info ("Registering WeavingHook {}", hook);
-        reg_list.add (context.registerService (WeavingHook.class.getName (), hook, null));
+        log.info ("BundleObjects Manager stopped");
     }
 }
 

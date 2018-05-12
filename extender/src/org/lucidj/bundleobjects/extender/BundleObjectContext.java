@@ -22,6 +22,7 @@ import org.lucidj.api.bundleobjects.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -52,7 +53,7 @@ public class BundleObjectContext implements SynchronousBundleListener
         context.addBundleListener (this);
     }
 
-    private void call_annotated (Class annotation, Object obj, Object... args)
+    private void call_annotated (Class<? extends Annotation> annotation, Object obj, Object... args)
         throws Exception
     {
         for (Method m: obj.getClass ().getDeclaredMethods ())
@@ -251,6 +252,7 @@ public class BundleObjectContext implements SynchronousBundleListener
             this.service_class = service_class;
         }
 
+        @SuppressWarnings("unchecked")
         public Object invoke (Object proxy, Method method, Object[] args)
             throws Throwable
         {

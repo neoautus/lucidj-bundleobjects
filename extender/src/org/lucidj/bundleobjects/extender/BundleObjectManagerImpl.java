@@ -21,13 +21,12 @@ import javassist.CtClass;
 import javassist.CtConstructor;
 import javassist.LoaderClassPath;
 import javassist.NotFoundException;
+import org.lucidj.api.bundleobjects.BundleObject;
+import org.lucidj.api.bundleobjects.BundleObjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.lucidj.api.bundleobjects.BundleObject;
 
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.osgi.framework.Bundle;
@@ -38,11 +37,13 @@ import org.osgi.framework.hooks.weaving.WovenClass;
 import org.osgi.framework.startlevel.BundleStartLevel;
 import org.osgi.framework.wiring.BundleWiring;
 
-public class BundleObjectManager implements Observer, WeavingHook
+public class BundleObjectManagerImpl implements BundleObjectManager, WeavingHook
 {
-    private final static Logger log = LoggerFactory.getLogger (BundleObjectManager.class);
+    private final static Logger log = LoggerFactory.getLogger (BundleObjectManagerImpl.class);
 
     private final static String THIS_PACKAGE =
+        BundleObjectManagerImpl.class.getPackage ().getName () + ".";
+    private final static String API_PACKAGE =
         BundleObjectManager.class.getPackage ().getName () + ".";
     private final static String BUNDLEOBJECT_CLASS_NAME =
         BundleObject.class.getName ();
@@ -54,14 +55,16 @@ public class BundleObjectManager implements Observer, WeavingHook
     "    org.osgi.framework.ServiceReference service_ref = null;\n" +
     "    Object service = null;\n" +
     "    try {\n" +
-    "        service_ref = context.getServiceReference (java.util.Observer.class);\n" +
+    "        service_ref = context.getServiceReference (org.lucidj.api.bundleobjects.BundleObjectManager.class);\n" +
     "        if (service_ref != null) {\n" +
     "            service = context.getService (service_ref);\n" +
-    "            java.lang.reflect.Method m = java.util.Observer.class.getMethod (\"update\", new Class[] { java.util.Observable.class, Object.class });\n" +
-    "            m.invoke (service, new Object[] { null, this });\n" +
+    "            java.lang.reflect.Method m = org.lucidj.api.bundleobjects.BundleObjectManager.class.getMethod (\"register\", new Class[] { Object.class });\n" +
+    "            m.invoke (service, new Object[] { this });\n" +
     "        }\n" +
     "    }\n" +
-    "    catch (Exception ignore) {}" +
+    "    catch (Exception ignore) {" +
+            "ignore.printStackTrace();"+
+            "}" +
     "    finally {\n" +
     "        if (service != null) {\n" +
     "            context.ungetService (service_ref);\n" +
@@ -76,14 +79,16 @@ public class BundleObjectManager implements Observer, WeavingHook
     "    org.osgi.framework.ServiceReference service_ref = null;\n" +
     "    Object service = null;\n" +
     "    try {\n" +
-    "        service_ref = context.getServiceReference (java.util.Observer.class);\n" +
+    "        service_ref = context.getServiceReference (org.lucidj.api.bundleobjects.BundleObjectManager.class);\n" +
     "        if (service_ref != null) {\n" +
     "            service = context.getService (service_ref);\n" +
-    "            java.lang.reflect.Method m = java.util.Observer.class.getMethod (\"update\", new Class[] { java.util.Observable.class, Object.class });\n" +
-    "            m.invoke (service, new Object[] { new java.util.Observable (), this });\n" +
+    "            java.lang.reflect.Method m = org.lucidj.api.bundleobjects.BundleObjectManager.class.getMethod (\"validate\", new Class[] { Object.class });\n" +
+    "            m.invoke (service, new Object[] { this });\n" +
     "        }\n" +
     "    }\n" +
-    "    catch (Exception ignore) {}" +
+    "    catch (Exception ignore) {" +
+            "ignore.printStackTrace();"+
+            "}" +
     "    finally {\n" +
     "        if (service != null) {\n" +
     "            context.ungetService (service_ref);\n" +
@@ -93,15 +98,17 @@ public class BundleObjectManager implements Observer, WeavingHook
 
     private BundleContext context;
     private int bom_startlevel = 100;
+    private int target_framework_startlevel = 100;    // TODO: GET THIS FROM CONFIG
 
     private final Map<BundleContext, BundleObjectContext> context_map = new ConcurrentHashMap<> ();
 
-    public BundleObjectManager (BundleContext context)
+    public BundleObjectManagerImpl (BundleContext context, int bom_startlevel)
     {
         this.context = context;
+        this.bom_startlevel = bom_startlevel;
     }
 
-    @Override
+    @Override // WeavingHook
     public void weave (WovenClass wc)
     {
         BundleWiring bwg = wc.getBundleWiring ();
@@ -115,7 +122,8 @@ public class BundleObjectManager implements Observer, WeavingHook
 
         BundleStartLevel bsl = bnd.adapt (BundleStartLevel.class);
 
-        if (bsl.getStartLevel () < bom_startlevel)
+        if (bsl.getStartLevel () <= bom_startlevel
+            && bsl.getStartLevel () != target_framework_startlevel)
         {
             // We only act on bundles with startlevel >=  defined startlevel
             return;
@@ -123,8 +131,9 @@ public class BundleObjectManager implements Observer, WeavingHook
 
         String class_name = wc.getClassName ();
 
-        if (class_name.startsWith (THIS_PACKAGE)
-            || class_name.equals (BUNDLEOBJECT_CLASS_NAME))
+        if (class_name.equals (BUNDLEOBJECT_CLASS_NAME)
+            || class_name.startsWith (THIS_PACKAGE)
+            || class_name.startsWith (API_PACKAGE))
         {
             return;
         }
@@ -145,7 +154,7 @@ public class BundleObjectManager implements Observer, WeavingHook
 
         // Add the source classloader for the woven class
         ClassPool cp = new ClassPool (true);
-        cp.insertClassPath (new LoaderClassPath (BundleObjectManager.class.getClassLoader ()));
+        cp.insertClassPath (new LoaderClassPath (BundleObjectManagerImpl.class.getClassLoader ()));
         cp.insertClassPath (new LoaderClassPath (bwg.getClassLoader ()));
         CtClass cc;
         Object ann;
@@ -202,12 +211,11 @@ public class BundleObjectManager implements Observer, WeavingHook
         }
     }
 
-    @Override // Observer
-    public void update (Observable o, Object arg)
+    private BundleObjectContext get_bo_context (Object object)
     {
-        Bundle bo_bnd = FrameworkUtil.getBundle (arg.getClass ());
+        Bundle bo_bnd = FrameworkUtil.getBundle (object.getClass ());
         BundleContext bo_ctx = bo_bnd.getBundleContext ();
-        BundleObjectContext boc = null;
+        BundleObjectContext boc;
 
         synchronized (context_map)
         {
@@ -217,15 +225,19 @@ public class BundleObjectManager implements Observer, WeavingHook
                 context_map.put (bo_ctx, boc);
             }
         }
+        return (boc);
+    }
 
-        if (o == null)
-        {
-            boc.register (arg);
-        }
-        else
-        {
-            boc.validate (arg);
-        }
+    @Override // BundleObjectManager
+    public void register (Object object)
+    {
+        get_bo_context (object).register (object);
+    }
+
+    @Override // BundleObjectManager
+    public void validate(Object object)
+    {
+        get_bo_context (object).validate (object);
     }
 }
 
